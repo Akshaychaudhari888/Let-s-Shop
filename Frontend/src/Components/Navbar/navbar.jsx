@@ -24,7 +24,7 @@ const Navbar = ({ setShowLogin }) => {
     <div className="navbar">
       {/* Logo or heading */}
       <Link to="/" className="navbar-logo">
-        <h1>Learn</h1>
+        <h1>Smart Shop</h1>
       </Link>
 
       {/* Navigation menu */}
