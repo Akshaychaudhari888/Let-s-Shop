@@ -30,6 +30,9 @@ app.use((req, res, next) => {
 });
 
 // Routes
+app.use('/test', (req, res) => {
+    res.send('backend server is running');
+});
 app.use("/api", routes);
 app.use('/api/images', express.static('uploads'));
 app.use('/api/user',userRoutes)
