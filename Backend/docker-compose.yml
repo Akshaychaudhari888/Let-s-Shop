@@ -3,10 +3,14 @@ version: "3.8"
 services:
   backend:
     build: .
-    container_name: my-node-app  
+    container_name: food-delivery-backend
+    restart: always
     ports:
       - "5000:5000"
     env_file:
       - .env
     volumes:
-      - C:/Users/jalgo/.cache/OneDrive/Desktop/coding:/data/db
+      - uploads_data:/app/uploads
+
+volumes:
+  uploads_data:
