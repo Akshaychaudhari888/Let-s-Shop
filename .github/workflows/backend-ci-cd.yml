@@ -13,3 +13,7 @@ jobs:
 
       - name: Show backend files
         run: ls -la Backend
+
+      - name: Build Docker image
+        working-directory: ./Backend
+        run: docker build -t backend:latest .
