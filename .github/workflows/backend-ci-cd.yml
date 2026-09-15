@@ -14,10 +14,6 @@ jobs:
       - name: Show backend files
         run: ls -la Backend
 
-      - name: Build Docker image
-        working-directory: ./Backend
-        run: docker build -t backend:latest .
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
