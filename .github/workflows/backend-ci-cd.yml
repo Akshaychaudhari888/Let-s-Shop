@@ -39,13 +39,12 @@ jobs:
           docker push \
             ${{ steps.login-ecr.outputs.registry }}/lets-shop-backend:latest
 
-      - name: Test SSH connection
+      - name: Deploy - Login to ECR and Pull Image
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "SSH connection successful"
-            whoami
-            hostname
+            aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 372492156341.dkr.ecr.ap-south-1.amazonaws.com
+            docker pull 372492156341.dkr.ecr.ap-south-1.amazonaws.com/lets-shop-backend:latest
