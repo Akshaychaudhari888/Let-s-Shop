@@ -75,85 +75,86 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-
+      
           script: |
-
+            set -e
+      
             echo "================================"
             echo "Login to ECR"
             echo "================================"
-
+      
             aws ecr get-login-password \
               --region ap-south-1 | \
               docker login \
               --username AWS \
               --password-stdin \
               372492156341.dkr.ecr.ap-south-1.amazonaws.com
-
-
+      
+      
             echo "================================"
             echo "Pull latest Docker image"
             echo "================================"
-
+      
             docker pull \
               372492156341.dkr.ecr.ap-south-1.amazonaws.com/lets-shop-backend:latest
-
-
+      
+      
             echo "================================"
             echo "Stop old container"
             echo "================================"
-
+      
             docker stop lets-shop-backend || true
-
-
+      
+      
             echo "================================"
             echo "Remove old container"
             echo "================================"
-
+      
             docker rm lets-shop-backend || true
-
-
+      
+      
             echo "================================"
             echo "Start new container"
             echo "================================"
-
+      
             docker run -d \
               --name lets-shop-backend \
-              --env-file ~/Backend/.env \
+              --env-file /home/ec2-user/Let-s-Shop/Backend/.env \
               -p 5000:5000 \
               372492156341.dkr.ecr.ap-south-1.amazonaws.com/lets-shop-backend:latest
-
-
+      
+      
             echo "================================"
             echo "Wait for application"
             echo "================================"
-
+      
             sleep 15
-
-
+      
+      
             echo "================================"
             echo "Container status"
             echo "================================"
-
+      
             docker ps
-
-
+      
+      
             echo "================================"
             echo "Docker health status"
             echo "================================"
-
+      
             docker inspect \
               --format='{{.State.Health.Status}}' \
               lets-shop-backend
-
-
+      
+      
             echo "================================"
             echo "Test health endpoint"
             echo "================================"
-
+      
             curl --fail \
               http://localhost:5000/test
-
-
+      
+      
             echo "================================"
             echo "Deployment completed successfully"
             echo "================================"
