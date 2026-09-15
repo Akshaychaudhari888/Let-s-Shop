@@ -38,3 +38,14 @@ jobs:
         run: |
           docker push \
             ${{ steps.login-ecr.outputs.registry }}/lets-shop-backend:latest
+
+      - name: Test SSH connection
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "SSH connection successful"
+            whoami
+            hostname
