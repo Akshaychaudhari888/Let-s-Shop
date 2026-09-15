@@ -33,4 +33,8 @@ jobs:
         run: |
           docker tag backend:latest \
             ${{ steps.login-ecr.outputs.registry }}/lets-shop-backend:latest
-      
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/lets-shop-backend:latest
