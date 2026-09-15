@@ -1,6 +1,10 @@
 name: Backend CI/CD
 
 on:
+  push:
+    branches:
+      - main
+
   workflow_dispatch:
 
 jobs:
@@ -8,12 +12,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # ==========================================
+      # 1. Checkout source code
+      # ==========================================
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Show backend files
-        run: ls -la Backend
 
+      # ==========================================
+      # 2. Build Docker image
+      # ==========================================
+      - name: Build Docker image
+        working-directory: ./Backend
+        run: |
+          docker build -t backend:latest .
+
+
+      # ==========================================
+      # 3. Configure AWS credentials
+      # ==========================================
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -21,30 +39,121 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Build Docker image
-        working-directory: ./Backend
-        run: docker build -t backend:latest .
 
+      # ==========================================
+      # 4. Login to Amazon ECR
+      # ==========================================
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+
+      # ==========================================
+      # 5. Tag Docker image
+      # ==========================================
       - name: Tag Docker image
         run: |
           docker tag backend:latest \
             ${{ steps.login-ecr.outputs.registry }}/lets-shop-backend:latest
 
+
+      # ==========================================
+      # 6. Push Docker image to ECR
+      # ==========================================
       - name: Push Docker image to ECR
         run: |
           docker push \
             ${{ steps.login-ecr.outputs.registry }}/lets-shop-backend:latest
 
-      - name: Deploy - Login to ECR and Pull Image
+
+      # ==========================================
+      # 7. Deploy to EC2
+      # ==========================================
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
+
           script: |
-            aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 372492156341.dkr.ecr.ap-south-1.amazonaws.com
-            docker pull 372492156341.dkr.ecr.ap-south-1.amazonaws.com/lets-shop-backend:latest
+
+            echo "================================"
+            echo "Login to ECR"
+            echo "================================"
+
+            aws ecr get-login-password \
+              --region ap-south-1 | \
+              docker login \
+              --username AWS \
+              --password-stdin \
+              372492156341.dkr.ecr.ap-south-1.amazonaws.com
+
+
+            echo "================================"
+            echo "Pull latest Docker image"
+            echo "================================"
+
+            docker pull \
+              372492156341.dkr.ecr.ap-south-1.amazonaws.com/lets-shop-backend:latest
+
+
+            echo "================================"
+            echo "Stop old container"
+            echo "================================"
+
+            docker stop lets-shop-backend || true
+
+
+            echo "================================"
+            echo "Remove old container"
+            echo "================================"
+
+            docker rm lets-shop-backend || true
+
+
+            echo "================================"
+            echo "Start new container"
+            echo "================================"
+
+            docker run -d \
+              --name lets-shop-backend \
+              --env-file ~/Backend/.env \
+              -p 5000:5000 \
+              372492156341.dkr.ecr.ap-south-1.amazonaws.com/lets-shop-backend:latest
+
+
+            echo "================================"
+            echo "Wait for application"
+            echo "================================"
+
+            sleep 15
+
+
+            echo "================================"
+            echo "Container status"
+            echo "================================"
+
+            docker ps
+
+
+            echo "================================"
+            echo "Docker health status"
+            echo "================================"
+
+            docker inspect \
+              --format='{{.State.Health.Status}}' \
+              lets-shop-backend
+
+
+            echo "================================"
+            echo "Test health endpoint"
+            echo "================================"
+
+            curl --fail \
+              http://localhost:5000/test
+
+
+            echo "================================"
+            echo "Deployment completed successfully"
+            echo "================================"
