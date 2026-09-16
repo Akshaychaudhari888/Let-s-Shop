@@ -1,0 +1,109 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # 1. Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log - Checkout completed
+        run: |
+          echo "========================================="
+          echo "✅ Repository checkout completed"
+          echo "========================================="
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Log - Node information
+        run: |
+          echo "========================================="
+          echo "✅ Node.js setup completed"
+          echo "Node version:"
+          node --version
+          echo "NPM version:"
+          npm --version
+          echo "========================================="
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        working-directory: Frontend
+        run: |
+          echo "========================================="
+          echo "📦 Installing frontend dependencies..."
+          echo "========================================="
+          npm ci
+          echo "✅ Dependencies installed successfully"
+
+      # 4. Build frontend
+      - name: Build frontend
+        working-directory: Frontend
+        run: |
+          echo "========================================="
+          echo "🏗️ Building frontend..."
+          echo "========================================="
+          npm run build
+          echo "✅ Frontend build completed"
+          echo "========================================="
+          echo "Build output:"
+          ls -lah dist/
+          echo "========================================="
+
+      # 5. Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Log - AWS authentication
+        run: |
+          echo "========================================="
+          echo "✅ AWS authentication completed"
+          echo "AWS Region: ap-south-1"
+          echo "========================================="
+
+      # 6. Deploy to S3
+      - name: Deploy to S3
+        run: |
+          echo "========================================="
+          echo "🚀 Deploying frontend to S3..."
+          echo "Bucket: lets-shop-frontend"
+          echo "========================================="
+
+          aws s3 sync Frontend/dist/ s3://lets-shop-frontend --delete
+
+          echo "========================================="
+          echo "✅ Frontend deployed successfully!"
+          echo "========================================="
+
+      # 7. Verify S3 deployment
+      - name: Verify S3 deployment
+        run: |
+          echo "========================================="
+          echo "🔍 Verifying files in S3..."
+          echo "========================================="
+
+          aws s3 ls s3://lets-shop-frontend --recursive
+
+          echo "========================================="
+          echo "✅ S3 deployment verification completed"
+          echo "========================================="
